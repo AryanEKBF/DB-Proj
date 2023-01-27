@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_mysqldb import MySQL
 import jwt
 
@@ -206,6 +206,102 @@ def user_from_admin():
                 return jsonify({'message': 'Error'})
         else:
             return jsonify({'message': 'Error'})
+
+
+#query1
+@app.route('/products', methods=['GET'])
+def products():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT titleFROM products")
+    rv = cur.fetchall()
+    return jsonify(rv)
+
+#query4
+@app.route('/orders', methods=['GET'])
+def orders():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT orders.dateOrdered, products.title," +
+    " users.first_name, users.last_name FROM orders, order_item, items, products, users" +
+    " WHERE orders.user_id = users.id AND orders.id = order_item.order_id AND" +
+    " order_item.item_id = items.id AND items.product_id = products.id")
+    rv = cur.fetchall()
+    return jsonify(rv)
+
+#query7
+@app.route('/special_offers', methods=['GET'])
+def special_offers():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT products.title, items.price, items.discount_percentage, items.id" +
+    " FROM products, items WHERE items.product_id = products.id AND" +
+    " items.discount_percentage > 15")
+    rv = cur.fetchall()
+    return jsonify(rv)
+
+#query10
+@app.route('/categories', methods=['GET'])
+def categories():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT products.title, categories.title" +
+    " FROM product_category, products, categories" + 
+    " WHERE product_category. product_id = products.id AND" + 
+    " product_category.category_id = categories.id")
+    rv = cur.fetchall()
+    return jsonify(rv)
+
+#query13
+@app.route('/top3', methods=['GET'])
+def top3():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT content, rating FROM product_review" + 
+    " WHERE content IS NOT NULL ORDER BY rating DESC LIMIT 3")
+    rv = cur.fetchall()
+    return jsonify(rv)
+
+#log in
+@app.route('/log_in', methods=['POST'])
+def log_in():
+    msg = ''
+    username = request.json['username']
+    password = request.json['password']
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM users"+
+    " WHERE username = %s AND password = %s", (username, password))
+    account = cur.fetchone()
+    if account:
+        session['loggedin'] = True
+        session['id'] = account['id']
+        session['username'] = account['username']
+        msg = 'Logged in successfully !'
+    else:
+        msg = 'Incorrect username / password !'
+    return jsonify({'msg': msg})
+    
+#edit product
+@app.route('/edit_product', methods=['POST'])
+def edit_product():
+    cur.execute("SELECT admin FROM users"+
+    " WHERE username = %s", (session['id']))
+    admin = cur.fetchone()
+    if admin :
+        product_id = request.json['product_id']
+        item_id = request.json['item_id']
+        quantity = request.json['quantity']
+        price = request.json['price']
+        discount_percentage = request.json['discount_percentage']
+        title = request.json['title']
+        cur = mysql.connection.cursor()
+        cur.execute("UPDATE items SET quantity = %s, price = %s,"+
+        " discount_percentage = %s WHERE id = %s AND product_id = %s",
+         (quantity, price, discount_percentage, item_id, product_id))
+        cur.execute("UPDATE products SET title = %s WHERE id = %s",(title, product_id))
+        try :
+            mysql.connection.commit()
+            return jsonify({'status': 'success'})
+        except :
+            return jsonify({'status': 'unsuccessful'})
+    else :
+        return jsonify({'msg': 'You are not an admin'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
