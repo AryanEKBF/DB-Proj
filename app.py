@@ -305,5 +305,63 @@ def edit_product():
         return jsonify({'msg': 'You are not an admin'})
 
 
+#QUERY14 : 3 reviews with lowest rating for product
+@app.route('/three_lowest_rating_reviews', methods=['GET', 'POST'])
+def product_categories():
+    if request.method == 'GET':
+        cur = mysql.connection.cursor()
+        data = request.get_json()
+        cur.execute(f"SELECT p.id, p.title, pr.user_id, u.username, pr.rating, pr.content, pr.createdAt FROM product_review AS pr INNER JOIN products AS p ON pr.product_id = p.id INNER JOIN users AS u ON pr.user_id = u.id WHERE pr.product_id = {data['pr.product_id']} ORDER BY rating LIMIT 3;")
+        rv = cur.fetchall()
+        return jsonify(rv)
+
+#QUERY15 : sold amount of item by month
+@app.route('/item_sold_monthly', methods=['GET'])
+def item_sold_monthly():
+    if request.method == 'GET':
+        cur = mysql.connection.cursor()
+        cur.execute('''SELECT YEAR(o.datePaid) AS year_column, MONTH(o.datePaid) AS month_column, SUM(i.price - i.price * i.discount_percentage / 100) AS total_sold
+        FROM orders AS o
+        INNER JOIN order_item AS oi ON o.id = oi.order_id
+        INNER JOIN items AS i ON i.id = oi.item_id
+        WHERE o.paid = 1
+        AND i.id = 1
+        AND o.datePaid IS NOT NULL
+        GROUP BY YEAR(o.datePaid), MONTH(o.datePaid)
+        ORDER BY YEAR(o.datePaid), MONTH(o.datePaid) DESC;''')
+        rv = cur.fetchall()
+        return jsonify(rv)
+
+#query16 : average price of total items sold by month
+@app.route('/average_items_sold_monthly', methods=['GET'])
+def average_items_sold_monthly():
+    if request.method == 'GET':
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT YEAR(o.datePaid) AS year_column, MONTH(o.datePaid) AS month_column, AVG(i.price - i.price * i.discount_percentage / 100) AS average_sold FROM orders AS o INNER JOIN order_item AS oi ON o.id = oi.order_id INNER JOIN items AS i ON i.id = oi.item_id WHERE o.paid = 1 AND o.datePaid IS NOT NULL GROUP BY YEAR(o.datePaid), MONTH(o.datePaid) ORDER BY YEAR(o.datePaid), MONTH(o.datePaid) DESC;")
+        rv = cur.fetchall()
+        return jsonify(rv)
+
+#query17 : users from same city
+@app.route('/users_same_city', methods=['GET', 'POST'])
+def users_same_city():
+    if request.method == 'GET':
+        cur = mysql.connection.cursor()
+        data = request.get_json()
+        cur.execute(f"SELECT id, first_name, last_name, email, username, city FROM users WHERE city = {data['city']};")
+        rv = cur.fetchall()
+        return jsonify(rv)
+
+#query18 : vendors from same city
+@app.route('/vendors_same_city', methods=['GET'])
+def vendors_same_city():
+    if request.method == 'GET':
+        cur = mysql.connection.cursor()
+        data = request.get_json()
+        cur.execute(f"SELECT id, title, city FROM vendors WHERE city = {data['city']};")
+        rv = cur.fetchall()
+        return jsonify(rv)
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)
