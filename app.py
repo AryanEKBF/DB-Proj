@@ -5,9 +5,10 @@ import jwt
 app = Flask(__name__)
 
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '123456'
+app.config['MYSQL_PASSWORD'] = 'password'
 app.config['MYSQL_DB'] = 'online_shop'
 app.config['MYSQL_HOST'] = 'localhost' 
+app.secret_key = 'super secret key'
 mysql = MySQL(app)
 
 @app.route('/product_categories', methods=['GET'])
@@ -212,7 +213,7 @@ def user_from_admin():
 @app.route('/products', methods=['GET'])
 def products():
     cur = mysql.connection.cursor()
-    cur.execute("SELECT titleFROM products")
+    cur.execute("SELECT title FROM products")
     rv = cur.fetchall()
     return jsonify(rv)
 
@@ -269,8 +270,8 @@ def log_in():
     account = cur.fetchone()
     if account:
         session['loggedin'] = True
-        session['id'] = account['id']
-        session['username'] = account['username']
+        session['id'] = account[0]
+        session['username'] = account[5]
         msg = 'Logged in successfully !'
     else:
         msg = 'Incorrect username / password !'
@@ -279,10 +280,11 @@ def log_in():
 #edit product
 @app.route('/edit_product', methods=['POST'])
 def edit_product():
-    cur.execute("SELECT admin FROM users"+
-    " WHERE username = %s", (session['id']))
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT admin FROM users '+
+    'WHERE id = %s', (session['id'],))
     admin = cur.fetchone()
-    if admin :
+    if admin[0] :
         product_id = request.json['product_id']
         item_id = request.json['item_id']
         quantity = request.json['quantity']
