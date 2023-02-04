@@ -378,6 +378,18 @@ def add_product():
     else :
         return jsonify({'msg': 'You are not an admin'})
 
+#edit user info
+@app.route('/edit_my_info', methods=['POST'])
+def edit_my_info():
+    cur = mysql.connection.cursor()
+    data = request.get_json()
+    cur.execute(f"UPDATE users SET first_name = {data['first_name']}, last_name = {data['last_name']}, phone_number = {data['phone_number']}, email = {data['email']}, username = {data['username']}, password = {data['password']}, date_of_birth = {data['date_of_birth']}, city = {data['city']} WHERE id = {data['id']};")
+    try :
+        mysql.connection.commit()
+        return jsonify({'status': 'success'})
+    except :
+        return jsonify({'status': 'unsuccessful'})
+
 
 
 if __name__ == '__main__':
