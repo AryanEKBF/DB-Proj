@@ -361,6 +361,23 @@ def vendors_same_city():
         rv = cur.fetchall()
         return jsonify(rv)
 
+# add product for admin
+@app.route('/add_product', methods=['POST'])
+def add_product():
+    cur.execute(f"SELECT admin FROM users WHERE id = {session['id']};")
+    admin = cur.fetchone()
+    if admin :
+        cur = mysql.connection.cursor()
+        data = request.get_json()
+        cur.execute(f"INSERT INTO products (title) VALUES ({data['title']});")
+        try :
+            mysql.connection.commit()
+            return jsonify({'status': 'success'})
+        except :
+            return jsonify({'status': 'unsuccessful'})
+    else :
+        return jsonify({'msg': 'You are not an admin'})
+
 
 
 if __name__ == '__main__':
